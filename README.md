@@ -37,6 +37,20 @@ jobs:
           pr-link-template: "[{prTitle}]({link})"
 ```
 
+## Versioning and releases
+
+Use `circusdev/backlog-pr-link-action@v2` to receive compatible v2 updates. Pin
+`@vX.Y.Z` or a commit SHA when you need an immutable reference.
+
+Release tags such as `v2.5.0` are not moved after publication. The `v2` major tag
+tracks the latest compatible v2 release.
+
+Release PRs are managed by release-please. The release workflow builds and commits
+`dist/` on release-please PRs, so normal pull requests should not edit `dist/`
+directly. If this repository adds branch protection or required checks for release
+PRs, revisit whether release automation needs a GitHub App token or PAT instead of
+the default `GITHUB_TOKEN`.
+
 ### Pull request link template
 
 By default, this action writes a Markdown link to Backlog:

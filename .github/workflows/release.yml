@@ -1,0 +1,102 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v5
+        id: release-please
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - uses: actions/checkout@v7
+        if: ${{ steps.release-please.outputs.prs_created == 'true' }}
+        with:
+          ref: ${{ fromJSON(steps.release-please.outputs.pr).headBranchName }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: denoland/setup-deno@v2
+        if: ${{ steps.release-please.outputs.prs_created == 'true' }}
+        with:
+          deno-version: v2.x
+
+      - uses: actions/setup-node@v6
+        if: ${{ steps.release-please.outputs.prs_created == 'true' }}
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - run: npm ci
+        if: ${{ steps.release-please.outputs.prs_created == 'true' }}
+
+      - run: npm run lint
+        if: ${{ steps.release-please.outputs.prs_created == 'true' }}
+
+      - run: npm run fmt -- --check
+        if: ${{ steps.release-please.outputs.prs_created == 'true' }}
+
+      - run: npm test
+        if: ${{ steps.release-please.outputs.prs_created == 'true' }}
+
+      - run: npm run build
+        if: ${{ steps.release-please.outputs.prs_created == 'true' }}
+
+      - name: Commit dist updates
+        if: ${{ steps.release-please.outputs.prs_created == 'true' }}
+        env:
+          RELEASE_PR_BRANCH: ${{ fromJSON(steps.release-please.outputs.pr).headBranchName }}
+        run: |
+          git add dist
+
+          if git diff --cached --quiet -- dist; then
+            echo "dist is already current."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: update dist"
+          git push origin "HEAD:${RELEASE_PR_BRANCH}"
+
+      - name: Sync v2 tag
+        if: ${{ steps.release-please.outputs.release_created == 'true' && steps.release-please.outputs.major == '2' }}
+        uses: actions/github-script@v9
+        env:
+          RELEASE_SHA: ${{ steps.release-please.outputs.sha }}
+        with:
+          script: |
+            const ref = 'tags/v2'
+            const sha = process.env.RELEASE_SHA
+
+            try {
+              await github.rest.git.updateRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref,
+                sha,
+                force: true
+              })
+            } catch (error) {
+              if (error.status !== 404) {
+                throw error
+              }
+
+              await github.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `refs/${ref}`,
+                sha
+              })
+            }

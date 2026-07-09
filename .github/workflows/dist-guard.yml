@@ -1,0 +1,37 @@
+name: Dist Guard
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  dist-guard:
+    if: ${{ github.head_ref != 'release-please--branches--main' || github.event.pull_request.head.repo.full_name != github.repository }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              per_page: 100
+            })
+            const distFiles = files
+              .map((file) => file.filename)
+              .filter((filename) => filename === 'dist' || filename.startsWith('dist/'))
+
+            if (distFiles.length > 0) {
+              core.setFailed(
+                [
+                  'Do not edit dist/ in ordinary pull requests.',
+                  'Release automation updates dist/ on release-please PRs.',
+                  '',
+                  ...distFiles
+                ].join('\n')
+              )
+            }
