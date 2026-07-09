@@ -8,6 +8,10 @@ inputs:
   backlog-host:
     description: 'Backlog hostname (e.g. your-org.backlog.com")'
     required: true
+  pr-link-template:
+    description: 'Template used for the Pull Request custom field value. Supports {prTitle}, {rawPrTitle}, and {link}.'
+    required: false
+    default: '[{prTitle}]({link})'
 runs:
   using: 'node24'
   main: 'dist/index.js'

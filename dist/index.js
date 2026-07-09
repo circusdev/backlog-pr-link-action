@@ -43011,11 +43011,60 @@ var backlog_min = __nccwpck_require__(2463);
 
 
 const PR_FIELD_NAME = 'Pull Request';
+const PR_LINK_TEMPLATE_PLACEHOLDERS = ['prTitle', 'rawPrTitle', 'link'];
+const PR_LINK_TEMPLATE_PLACEHOLDER_REGEX = /\{([A-Za-z][A-Za-z0-9]*)\}/g;
+const DEFAULT_PR_LINK_TEMPLATE = '[{prTitle}]({link})';
+function parsePrLinkTemplate(value) {
+    const template = value || DEFAULT_PR_LINK_TEMPLATE;
+    if (/[\r\n]/.test(template)) {
+        throw new Error('Invalid pr-link-template: template must be a single line');
+    }
+    if (!template.includes('{link}')) {
+        throw new Error('Invalid pr-link-template: template must include {link}');
+    }
+    for (const [, placeholder] of template.matchAll(PR_LINK_TEMPLATE_PLACEHOLDER_REGEX)) {
+        if (!PR_LINK_TEMPLATE_PLACEHOLDERS.includes(placeholder)) {
+            throw new Error(`Invalid pr-link-template: unknown placeholder {${placeholder}}`);
+        }
+    }
+    const withoutPlaceholders = template.replace(PR_LINK_TEMPLATE_PLACEHOLDER_REGEX, '');
+    if (withoutPlaceholders.includes('{') || withoutPlaceholders.includes('}')) {
+        throw new Error('Invalid pr-link-template: malformed placeholder');
+    }
+    return template;
+}
+function normalizePrTitle(title) {
+    return title.replace(/\s+/g, ' ').trim();
+}
+function escapeMarkdownText(value) {
+    return value
+        .replace(/\\/g, '\\\\')
+        .replace(/\[/g, '\\[')
+        .replace(/\]/g, '\\]')
+        .replace(/`/g, '\\`');
+}
+function isPrUrlContinuation(char) {
+    return char !== undefined && /[A-Za-z0-9/_:.\-?#[\]=&%]/.test(char);
+}
+function hasExactPrUrl(line, prUrl) {
+    let startIndex = line.indexOf(prUrl);
+    while (startIndex !== -1) {
+        const before = startIndex > 0 ? line[startIndex - 1] : undefined;
+        const after = line[startIndex + prUrl.length];
+        if (!isPrUrlContinuation(before) && !isPrUrlContinuation(after)) {
+            return true;
+        }
+        startIndex = line.indexOf(prUrl, startIndex + 1);
+    }
+    return false;
+}
 class Client {
     host;
     backlog;
-    constructor(host, apiKey) {
+    prLinkTemplate;
+    constructor(host, apiKey, prLinkTemplate = DEFAULT_PR_LINK_TEMPLATE) {
         this.host = host;
+        this.prLinkTemplate = parsePrLinkTemplate(prLinkTemplate);
         this.backlog = new backlog_min.Backlog({ host, apiKey });
     }
     containsBacklogUrl(body) {
@@ -43031,7 +43080,7 @@ class Client {
         }
         return urls;
     }
-    async updateIssuePrField(projectId, issueId, prUrl) {
+    async updateIssuePrField(projectId, issueId, prUrl, prTitle = '') {
         if (!await this.validateProject(projectId)) {
             warning(`Invalid ProjectID: ${projectId}`);
             return false;
@@ -43066,12 +43115,15 @@ class Client {
             core_error('Failed to get the current value of the custom field');
             return false;
         }
-        if ((currentPrField.value || '').includes(prUrl)) {
+        if (this.hasPrUrl(currentPrField.value || '', prUrl)) {
             info(`Pull Request (${prUrl}) has already been linked`);
             return false;
         }
         try {
-            const updateValue = currentPrField.value ? `${currentPrField.value}\n${prUrl}` : prUrl;
+            const linkText = this.formatPrValue(prTitle, prUrl);
+            const updateValue = currentPrField.value
+                ? `${currentPrField.value}\n${linkText}`
+                : linkText;
             await this.backlog.patchIssue(issueId, {
                 [`customField_${currentPrField.id}`]: updateValue,
             });
@@ -43107,6 +43159,26 @@ class Client {
     get urlRegex() {
         return new RegExp(`https://${this.host}/view/(\\w+)-(\\d+)`, 'g');
     }
+    hasPrUrl(value, prUrl) {
+        return value
+            .split('\n')
+            .map((line) => line.trim())
+            .some((line) => hasExactPrUrl(line, prUrl));
+    }
+    formatPrValue(title, url) {
+        const rawPrTitle = normalizePrTitle(title);
+        const prTitle = escapeMarkdownText(rawPrTitle || url);
+        return this.prLinkTemplate.replace(PR_LINK_TEMPLATE_PLACEHOLDER_REGEX, (_match, placeholder) => {
+            switch (placeholder) {
+                case 'rawPrTitle':
+                    return rawPrTitle;
+                case 'prTitle':
+                    return prTitle;
+                case 'link':
+                    return url;
+            }
+        });
+    }
 }
 
 ;// CONCATENATED MODULE: ./src/main.ts
@@ -43117,18 +43189,19 @@ async function main() {
     try {
         const host = getInput('backlog-host', { required: true });
         const apiKey = getInput('backlog-api-key', { required: true });
+        const prLinkTemplate = getInput('pr-link-template') || DEFAULT_PR_LINK_TEMPLATE;
         if (github_context.payload.pull_request === undefined) {
             throw new Error("Can't get pull_request payload. Check your trigger is pull_request event");
         }
-        const client = new Client(host, apiKey);
-        const { html_url: prUrl = '', body = '' } = github_context.payload.pull_request;
+        const client = new Client(host, apiKey, prLinkTemplate);
+        const { html_url: prUrl = '', body = '', title: prTitle = '' } = github_context.payload.pull_request;
         if (!client.containsBacklogUrl(body)) {
             info("Skip process since the body doesn't contain backlog URL");
             return;
         }
         for (const [backlogUrl, projectId, issueId] of client.parseBacklogUrl(body)) {
             info(`Trying to link the Pull Request to ${backlogUrl}`);
-            if (await client.updateIssuePrField(projectId, issueId, prUrl)) {
+            if (await client.updateIssuePrField(projectId, issueId, prUrl, prTitle)) {
                 info(`Pull Request (${prUrl}) has been successfully linked`);
             }
         }
