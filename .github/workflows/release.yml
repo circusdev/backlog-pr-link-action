@@ -89,7 +89,10 @@ jobs:
                 force: true
               })
             } catch (error) {
-              if (error.status !== 404) {
+              const refDoesNotExist = error.status === 404 ||
+                (error.status === 422 && /does not exist/i.test(String(error.message)))
+
+              if (!refDoesNotExist) {
                 throw error
               }
 
