@@ -46,6 +46,14 @@ describe('containsBacklogUrl', () => {
     expect(client.containsBacklogUrl(invalidUrl)).toBe(false)
   })
 
+  test('does not match a different host through regexp metacharacters', () => {
+    const exampleClient = new Client('example.backlog.com', 'dummy_key')
+
+    expect(exampleClient.containsBacklogUrl('https://exampleXbacklog.com/view/PROJECT-1')).toBe(
+      false,
+    )
+  })
+
   test.concurrent.each([
     'https://xxx.backlog.com/view/1-1',
     'https://xxx.backlog.com/view/PROJECT-1',
@@ -64,6 +72,13 @@ describe('parseBacklogUrl', () => {
     'https://xxx.backlog.com/view',
   ])('invalid URL %#', (body) => {
     expect(client.parseBacklogUrl(body)).toStrictEqual([])
+  })
+
+  test('does not parse a different host through regexp metacharacters', () => {
+    const exampleClient = new Client('example.backlog.com', 'dummy_key')
+
+    expect(exampleClient.parseBacklogUrl('https://exampleXbacklog.com/view/PROJECT-1'))
+      .toStrictEqual([])
   })
 
   test.concurrent.each([

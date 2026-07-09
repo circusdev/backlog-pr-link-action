@@ -70,6 +70,10 @@ function hasPrUrl(value: string, prUrl: string): boolean {
     .some((line) => hasExactPrUrl(line, prUrl))
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 function formatPrLink(template: string, title: string, url: string): string {
   const rawPrTitle = normalizePrTitle(title)
   const prTitle = escapeMarkdownText(rawPrTitle || url)
@@ -232,6 +236,6 @@ export class Client {
   }
 
   private get urlRegex(): RegExp {
-    return new RegExp(`https://${this.host}/view/(\\w+)-(\\d+)`, 'g')
+    return new RegExp(`https://${escapeRegExp(this.host)}/view/(\\w+)-(\\d+)`, 'g')
   }
 }
