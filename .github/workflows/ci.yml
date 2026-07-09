@@ -10,7 +10,7 @@ jobs:
     if: contains(github.event.pull_request.body, 'backlog.com')
     steps:
       - uses: actions/checkout@v7
-      - name: Test toshimaru/backlog-pr-link-action
+      - name: Test circusdev/backlog-pr-link-action
         uses: ./ # Uses an action in the root directory
         with:
           backlog-api-key: "${{ secrets.BACKLOG_API_KEY }}"

@@ -1,6 +1,6 @@
 name: 'Backlog Pull Request Link Action'
 description: 'Link the Pull Request to Backlog issue.'
-author: 'toshimaru'
+author: 'circusdev'
 inputs:
   backlog-api-key:
     description: 'API key for Backlog'
