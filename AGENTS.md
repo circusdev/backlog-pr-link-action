@@ -42,6 +42,7 @@ Do not commit Backlog API keys or GitHub secrets. Use repository or organization
 ## Agent-Specific Instructions
 
 Use the `gh` command line tool to interact with GitHub repositories.
+In workflow files, pin external `uses:` references to full commit SHAs and keep the corresponding version comment.
 
 ## Cursor Cloud specific instructions
 
