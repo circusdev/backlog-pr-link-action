@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 Release notes are managed by [release-please](https://github.com/googleapis/release-please).
 
+## [2.5.1](https://github.com/circusdev/backlog-pr-link-action/compare/v2.5.0...v2.5.1) (2026-07-09)
+
+
+### Bug Fixes
+
+* Backlog URLと非Error例外の扱いを修正しました ([#8](https://github.com/circusdev/backlog-pr-link-action/issues/8)) ([50caa1b](https://github.com/circusdev/backlog-pr-link-action/commit/50caa1bcc6fd59a9e653fc0c3c109eb11dd67ba6))
+
 ## [2.5.0](https://github.com/circusdev/backlog-pr-link-action/releases/tag/v2.5.0) (2026-07-09)
 
 ## [2.4.0](https://github.com/toshimaru/backlog-pr-link-action/compare/v2.3.0...v2.4.0) (2026-07-05)
