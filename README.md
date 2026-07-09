@@ -33,7 +33,38 @@ jobs:
         with:
           backlog-api-key: "${{ secrets.BACKLOG_API_KEY }}"
           backlog-host: "your-org.backlog.com"
+          pr-link-template: "[{prTitle}]({link})"
 ```
+
+### Pull request link template
+
+By default, this action writes a Markdown link to Backlog:
+
+```md
+[Pull request title](https://github.com/owner/repo/pull/1)
+```
+
+Customize `pr-link-template` if you want another value. Set it to `{link}` to keep the
+URL-only behavior.
+
+```yml
+with:
+  backlog-api-key: "${{ secrets.BACKLOG_API_KEY }}"
+  backlog-host: "your-org.backlog.com"
+  pr-link-template: "{link}"
+```
+
+Available placeholders:
+
+| Placeholder    | Value                                                             |
+| -------------- | ----------------------------------------------------------------- |
+| `{prTitle}`    | Pull request title escaped for Markdown; falls back to the PR URL |
+| `{rawPrTitle}` | Pull request title with whitespace normalized                     |
+| `{link}`       | Pull request URL                                                  |
+
+`pr-link-template` must include `{link}` and must be a single line.
+If your template renders Markdown, prefer `{prTitle}`. `{rawPrTitle}` writes the title
+as-is.
 
 > [!TIP]
 > **Avoiding unnecessary runs**
