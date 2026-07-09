@@ -1,10 +1,11 @@
 > [!IMPORTANT]
-> This project has been archived and is no longer actively maintained.
-> As announced in [v2.4.0](https://github.com/toshimaru/backlog-pr-link-action/releases/tag/v2.4.0),
-> this was planned as the final release by the current maintainer.
-> If you are interested in taking over maintenance, please contact @toshimaru.
+> circusdev maintains this fork of
+> [toshimaru/backlog-pr-link-action](https://github.com/toshimaru/backlog-pr-link-action).
+> Toshimaru archived the upstream project after
+> [v2.4.0](https://github.com/toshimaru/backlog-pr-link-action/releases/tag/v2.4.0).
+> Use `circusdev/backlog-pr-link-action` for future fixes and releases.
 
-[![Test](https://github.com/toshimaru/backlog-pr-link-action/actions/workflows/test.yml/badge.svg)](https://github.com/toshimaru/backlog-pr-link-action/actions/workflows/test.yml)
+[![Test](https://github.com/circusdev/backlog-pr-link-action/actions/workflows/test.yml/badge.svg)](https://github.com/circusdev/backlog-pr-link-action/actions/workflows/test.yml)
 
 # backlog-pr-link-action
 
@@ -29,7 +30,7 @@ jobs:
   backlog-pr-link:
     runs-on: ubuntu-latest
     steps:
-      - uses: toshimaru/backlog-pr-link-action@v2.3.0
+      - uses: circusdev/backlog-pr-link-action@v2.5.0
         with:
           backlog-api-key: "${{ secrets.BACKLOG_API_KEY }}"
           backlog-host: "your-org.backlog.com"
