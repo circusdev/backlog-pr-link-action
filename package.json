@@ -1,6 +1,6 @@
 {
   "name": "backlog-pr-link-action",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "type": "module",
   "private": true,
   "description": "GitHub Actions: Link PR to backlog issue.",
@@ -14,8 +14,7 @@
     "build": "ncc build src/main.ts --license licenses.txt",
     "fmt": "deno fmt -c ./deno.jsonc",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
-    "lint": "deno lint -c ./deno.jsonc",
-    "release": "standard-version"
+    "lint": "deno lint -c ./deno.jsonc"
   },
   "repository": {
     "type": "git",
@@ -46,7 +45,6 @@
     "@types/node": "^24.13.2",
     "@vercel/ncc": "^0.44.1",
     "jest": "^30.4.2",
-    "standard-version": "^9.5.0",
     "ts-jest": "^29.4.11",
     "typescript": "^6.0.3"
   },
