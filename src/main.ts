@@ -1,12 +1,12 @@
 import * as core from '@actions/core'
 import { context } from '@actions/github'
-import { Client, DEFAULT_PR_LINK_TEMPLATE } from './client.js'
+import { Client } from './client.js'
 
 async function main() {
   try {
     const host = core.getInput('backlog-host', { required: true })
     const apiKey = core.getInput('backlog-api-key', { required: true })
-    const prLinkTemplate = core.getInput('pr-link-template') || DEFAULT_PR_LINK_TEMPLATE
+    const prLinkTemplate = core.getInput('pr-link-template')
 
     if (context.payload.pull_request === undefined) {
       throw new Error("Can't get pull_request payload. Check your trigger is pull_request event")

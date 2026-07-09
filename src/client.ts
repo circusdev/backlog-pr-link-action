@@ -47,7 +47,7 @@ function escapeMarkdownText(value: string): string {
 }
 
 function isPrUrlContinuation(char: string | undefined): boolean {
-  return char !== undefined && /[A-Za-z0-9/_:.\-?#[\]=&%]/.test(char)
+  return char !== undefined && /[A-Za-z0-9/_:.\-[\]=&%]/.test(char)
 }
 
 function hasExactPrUrl(line: string, prUrl: string): boolean {
@@ -204,7 +204,7 @@ export class Client {
     const prTitle = escapeMarkdownText(rawPrTitle || url)
     return this.prLinkTemplate.replace(
       PR_LINK_TEMPLATE_PLACEHOLDER_REGEX,
-      (_match, placeholder: PrLinkTemplatePlaceholder): string => {
+      (match, placeholder: string): string => {
         switch (placeholder) {
           case 'rawPrTitle':
             return rawPrTitle
@@ -212,6 +212,8 @@ export class Client {
             return prTitle
           case 'link':
             return url
+          default:
+            return match
         }
       },
     )

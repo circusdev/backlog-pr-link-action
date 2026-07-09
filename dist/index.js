@@ -43044,7 +43044,7 @@ function escapeMarkdownText(value) {
         .replace(/`/g, '\\`');
 }
 function isPrUrlContinuation(char) {
-    return char !== undefined && /[A-Za-z0-9/_:.\-?#[\]=&%]/.test(char);
+    return char !== undefined && /[A-Za-z0-9/_:.\-[\]=&%]/.test(char);
 }
 function hasExactPrUrl(line, prUrl) {
     let startIndex = line.indexOf(prUrl);
@@ -43168,7 +43168,7 @@ class Client {
     formatPrValue(title, url) {
         const rawPrTitle = normalizePrTitle(title);
         const prTitle = escapeMarkdownText(rawPrTitle || url);
-        return this.prLinkTemplate.replace(PR_LINK_TEMPLATE_PLACEHOLDER_REGEX, (_match, placeholder) => {
+        return this.prLinkTemplate.replace(PR_LINK_TEMPLATE_PLACEHOLDER_REGEX, (match, placeholder) => {
             switch (placeholder) {
                 case 'rawPrTitle':
                     return rawPrTitle;
@@ -43176,6 +43176,8 @@ class Client {
                     return prTitle;
                 case 'link':
                     return url;
+                default:
+                    return match;
             }
         });
     }
@@ -43189,7 +43191,7 @@ async function main() {
     try {
         const host = getInput('backlog-host', { required: true });
         const apiKey = getInput('backlog-api-key', { required: true });
-        const prLinkTemplate = getInput('pr-link-template') || DEFAULT_PR_LINK_TEMPLATE;
+        const prLinkTemplate = getInput('pr-link-template');
         if (github_context.payload.pull_request === undefined) {
             throw new Error("Can't get pull_request payload. Check your trigger is pull_request event");
         }

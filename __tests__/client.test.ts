@@ -254,6 +254,8 @@ describe('updateIssuePrField', () => {
 
   test.each([
     ['https://github.com/xxx/pull/1'],
+    ['https://github.com/xxx/pull/1?foo=bar'],
+    ['https://github.com/xxx/pull/1#issuecomment-123'],
     ['[title](https://github.com/xxx/pull/1)'],
     ['PR: https://github.com/xxx/pull/1 - title'],
     ['https://github.com/xxx/pull/281\n[title](https://github.com/xxx/pull/1)'],
