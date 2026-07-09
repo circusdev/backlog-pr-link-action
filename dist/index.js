@@ -43064,6 +43064,9 @@ function hasPrUrl(value, prUrl) {
         .map((line) => line.trim())
         .some((line) => hasExactPrUrl(line, prUrl));
 }
+function escapeRegExp(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 function formatPrLink(template, title, url) {
     const rawPrTitle = normalizePrTitle(title);
     const prTitle = escapeMarkdownText(rawPrTitle || url);
@@ -43184,7 +43187,7 @@ class Client {
         return prField;
     }
     get urlRegex() {
-        return new RegExp(`https://${this.host}/view/(\\w+)-(\\d+)`, 'g');
+        return new RegExp(`https://${escapeRegExp(this.host)}/view/(\\w+)-(\\d+)`, 'g');
     }
 }
 
@@ -43192,6 +43195,9 @@ class Client {
 
 
 
+function getErrorMessage(error) {
+    return error instanceof Error ? error.message : String(error);
+}
 async function main() {
     try {
         const host = getInput('backlog-host', { required: true });
@@ -43214,9 +43220,7 @@ async function main() {
         }
     }
     catch (error) {
-        if (error instanceof Error) {
-            setFailed(error.message);
-        }
+        setFailed(getErrorMessage(error));
     }
 }
 main();
