@@ -63,6 +63,47 @@ function hasExactPrUrl(line: string, prUrl: string): boolean {
   return false
 }
 
+function hasPrUrl(value: string, prUrl: string): boolean {
+  return value
+    .split('\n')
+    .map((line) => line.trim())
+    .some((line) => hasExactPrUrl(line, prUrl))
+}
+
+function formatPrLink(template: string, title: string, url: string): string {
+  const rawPrTitle = normalizePrTitle(title)
+  const prTitle = escapeMarkdownText(rawPrTitle || url)
+  return template.replace(
+    PR_LINK_TEMPLATE_PLACEHOLDER_REGEX,
+    (match, placeholder: string): string => {
+      switch (placeholder) {
+        case 'rawPrTitle':
+          return rawPrTitle
+        case 'prTitle':
+          return prTitle
+        case 'link':
+          return url
+        default:
+          return match
+      }
+    },
+  )
+}
+
+export function buildPrFieldValue(
+  template: string,
+  currentValue: string | null | undefined,
+  prUrl: string,
+  prTitle: string,
+): string | null {
+  const value = currentValue || ''
+  if (hasPrUrl(value, prUrl)) {
+    return null
+  }
+  const linkText = formatPrLink(template, prTitle, prUrl)
+  return value ? `${value}\n${linkText}` : linkText
+}
+
 interface CustomField {
   id: number
   name: string
@@ -135,16 +176,18 @@ export class Client {
       core.error('Failed to get the current value of the custom field')
       return false
     }
-    if (this.hasPrUrl(currentPrField.value || '', prUrl)) {
+    const updateValue = buildPrFieldValue(
+      this.prLinkTemplate,
+      currentPrField.value,
+      prUrl,
+      prTitle,
+    )
+    if (updateValue === null) {
       core.info(`Pull Request (${prUrl}) has already been linked`)
       return false
     }
 
     try {
-      const linkText = this.formatPrValue(prTitle, prUrl)
-      const updateValue: string = currentPrField.value
-        ? `${currentPrField.value}\n${linkText}`
-        : linkText
       await this.backlog.patchIssue(issueId, {
         [`customField_${currentPrField.id}`]: updateValue,
       })
@@ -190,32 +233,5 @@ export class Client {
 
   private get urlRegex(): RegExp {
     return new RegExp(`https://${this.host}/view/(\\w+)-(\\d+)`, 'g')
-  }
-
-  private hasPrUrl(value: string, prUrl: string): boolean {
-    return value
-      .split('\n')
-      .map((line) => line.trim())
-      .some((line) => hasExactPrUrl(line, prUrl))
-  }
-
-  private formatPrValue(title: string, url: string): string {
-    const rawPrTitle = normalizePrTitle(title)
-    const prTitle = escapeMarkdownText(rawPrTitle || url)
-    return this.prLinkTemplate.replace(
-      PR_LINK_TEMPLATE_PLACEHOLDER_REGEX,
-      (match, placeholder: string): string => {
-        switch (placeholder) {
-          case 'rawPrTitle':
-            return rawPrTitle
-          case 'prTitle':
-            return prTitle
-          case 'link':
-            return url
-          default:
-            return match
-        }
-      },
-    )
   }
 }

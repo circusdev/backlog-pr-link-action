@@ -1,28 +1,11 @@
-import { jest } from '@jest/globals'
-import { Client, parsePrLinkTemplate } from '../src/client'
+import {
+  buildPrFieldValue,
+  Client,
+  DEFAULT_PR_LINK_TEMPLATE,
+  parsePrLinkTemplate,
+} from '../src/client'
 
 const client = new Client('xxx.backlog.com', 'dummy_key')
-
-function createClientWithPrFieldValue(value?: string | null, prLinkTemplate?: string): {
-  client: Client
-  patchIssue: jest.Mock
-} {
-  const testClient = new Client('xxx.backlog.com', 'dummy_key', prLinkTemplate)
-  const patchIssue = jest.fn().mockResolvedValue({})
-
-  Object.assign(testClient, {
-    backlog: {
-      getProject: jest.fn().mockResolvedValue({}),
-      getCustomFields: jest.fn().mockResolvedValue([{ id: 123, name: 'Pull Request' }]),
-      getIssue: jest.fn().mockResolvedValue({
-        customFields: [{ id: 123, name: 'Pull Request', value }],
-      }),
-      patchIssue,
-    },
-  })
-
-  return { client: testClient, patchIssue }
-}
 
 describe('parsePrLinkTemplate', () => {
   test.each([
@@ -155,6 +138,10 @@ describe('updateIssuePrField', () => {
     )
     expect(result).toBe(false)
   })
+})
+
+describe('buildPrFieldValue', () => {
+  const prUrl = 'https://github.com/xxx/pull/1'
 
   test.each([
     ['Add feature', '[Add feature](https://github.com/xxx/pull/1)'],
@@ -169,87 +156,23 @@ describe('updateIssuePrField', () => {
     ],
     ['', '[https://github.com/xxx/pull/1](https://github.com/xxx/pull/1)'],
     ['   ', '[https://github.com/xxx/pull/1](https://github.com/xxx/pull/1)'],
-  ])('updates the PR custom field with a Markdown PR link %#', async (title, expectedValue) => {
-    const { client, patchIssue } = createClientWithPrFieldValue()
-
-    const result = await client.updateIssuePrField(
-      'PROJECT',
-      'PROJECT-1',
-      'https://github.com/xxx/pull/1',
-      title,
-    )
-
-    expect(result).toBe(true)
-    expect(patchIssue).toHaveBeenCalledWith('PROJECT-1', {
-      customField_123: expectedValue,
-    })
+  ])('builds a Markdown PR link %#', (title, expected) => {
+    expect(buildPrFieldValue(DEFAULT_PR_LINK_TEMPLATE, undefined, prUrl, title)).toBe(expected)
   })
 
-  it('appends the Markdown PR link to an existing value', async () => {
-    const { client, patchIssue } = createClientWithPrFieldValue('existing')
-
-    const result = await client.updateIssuePrField(
-      'PROJECT',
-      'PROJECT-1',
-      'https://github.com/xxx/pull/1',
-      'Add feature',
+  test.each([
+    [DEFAULT_PR_LINK_TEMPLATE, '[Add feature](https://github.com/xxx/pull/1)'],
+    ['{link}', 'https://github.com/xxx/pull/1'],
+  ])('appends to an existing value %#', (template, linkText) => {
+    expect(buildPrFieldValue(template, 'existing', prUrl, 'Add feature')).toBe(
+      `existing\n${linkText}`,
     )
-
-    expect(result).toBe(true)
-    expect(patchIssue).toHaveBeenCalledWith('PROJECT-1', {
-      customField_123: 'existing\n[Add feature](https://github.com/xxx/pull/1)',
-    })
   })
 
-  it('updates the PR custom field with the raw PR URL template', async () => {
-    const { client, patchIssue } = createClientWithPrFieldValue(undefined, '{link}')
-
-    const result = await client.updateIssuePrField(
-      'PROJECT',
-      'PROJECT-1',
-      'https://github.com/xxx/pull/1',
-      'Add feature',
-    )
-
-    expect(result).toBe(true)
-    expect(patchIssue).toHaveBeenCalledWith('PROJECT-1', {
-      customField_123: 'https://github.com/xxx/pull/1',
-    })
-  })
-
-  it('appends the raw PR URL template to an existing value', async () => {
-    const { client, patchIssue } = createClientWithPrFieldValue('existing', '{link}')
-
-    const result = await client.updateIssuePrField(
-      'PROJECT',
-      'PROJECT-1',
-      'https://github.com/xxx/pull/1',
-      'Add feature',
-    )
-
-    expect(result).toBe(true)
-    expect(patchIssue).toHaveBeenCalledWith('PROJECT-1', {
-      customField_123: 'existing\nhttps://github.com/xxx/pull/1',
-    })
-  })
-
-  it('updates the PR custom field with a custom PR link template', async () => {
-    const { client, patchIssue } = createClientWithPrFieldValue(
-      undefined,
-      'PR: {rawPrTitle} <{link}>',
-    )
-
-    const result = await client.updateIssuePrField(
-      'PROJECT',
-      'PROJECT-1',
-      'https://github.com/xxx/pull/1',
-      '[HR_DEV-19] fix [bug]',
-    )
-
-    expect(result).toBe(true)
-    expect(patchIssue).toHaveBeenCalledWith('PROJECT-1', {
-      customField_123: 'PR: [HR_DEV-19] fix [bug] <https://github.com/xxx/pull/1>',
-    })
+  it('renders a custom template', () => {
+    expect(
+      buildPrFieldValue('PR: {rawPrTitle} <{link}>', undefined, prUrl, '[HR_DEV-19] fix [bug]'),
+    ).toBe('PR: [HR_DEV-19] fix [bug] <https://github.com/xxx/pull/1>')
   })
 
   test.each([
@@ -259,37 +182,23 @@ describe('updateIssuePrField', () => {
     ['[title](https://github.com/xxx/pull/1)'],
     ['PR: https://github.com/xxx/pull/1 - title'],
     ['https://github.com/xxx/pull/281\n[title](https://github.com/xxx/pull/1)'],
-  ])('skips update when the PR URL is already linked %#', async (currentValue) => {
-    const { client, patchIssue } = createClientWithPrFieldValue(currentValue)
-
-    const result = await client.updateIssuePrField(
-      'PROJECT',
-      'PROJECT-1',
-      'https://github.com/xxx/pull/1',
-      'Add feature',
-    )
-
-    expect(result).toBe(false)
-    expect(patchIssue).not.toHaveBeenCalled()
+  ])('returns null when the PR URL is already linked %#', (currentValue) => {
+    expect(buildPrFieldValue(DEFAULT_PR_LINK_TEMPLATE, currentValue, prUrl, 'Add feature'))
+      .toBeNull()
   })
 
   test.each([
     ['https://github.com/xxx/pull/281'],
     ['[title](https://github.com/xxx/pull/281)'],
     ['PR: https://github.com/xxx/pull/281 - title'],
-  ])('does not treat a prefix URL match as an existing link %#', async (currentValue) => {
-    const { client, patchIssue } = createClientWithPrFieldValue(currentValue)
-
-    const result = await client.updateIssuePrField(
-      'PROJECT',
-      'PROJECT-1',
-      'https://github.com/xxx/pull/28',
-      'Add feature',
-    )
-
-    expect(result).toBe(true)
-    expect(patchIssue).toHaveBeenCalledWith('PROJECT-1', {
-      customField_123: `${currentValue}\n[Add feature](https://github.com/xxx/pull/28)`,
-    })
+  ])('does not treat a prefix URL match as an existing link %#', (currentValue) => {
+    expect(
+      buildPrFieldValue(
+        DEFAULT_PR_LINK_TEMPLATE,
+        currentValue,
+        'https://github.com/xxx/pull/28',
+        'Add feature',
+      ),
+    ).toBe(`${currentValue}\n[Add feature](https://github.com/xxx/pull/28)`)
   })
 })

@@ -43058,6 +43058,36 @@ function hasExactPrUrl(line, prUrl) {
     }
     return false;
 }
+function hasPrUrl(value, prUrl) {
+    return value
+        .split('\n')
+        .map((line) => line.trim())
+        .some((line) => hasExactPrUrl(line, prUrl));
+}
+function formatPrLink(template, title, url) {
+    const rawPrTitle = normalizePrTitle(title);
+    const prTitle = escapeMarkdownText(rawPrTitle || url);
+    return template.replace(PR_LINK_TEMPLATE_PLACEHOLDER_REGEX, (match, placeholder) => {
+        switch (placeholder) {
+            case 'rawPrTitle':
+                return rawPrTitle;
+            case 'prTitle':
+                return prTitle;
+            case 'link':
+                return url;
+            default:
+                return match;
+        }
+    });
+}
+function buildPrFieldValue(template, currentValue, prUrl, prTitle) {
+    const value = currentValue || '';
+    if (hasPrUrl(value, prUrl)) {
+        return null;
+    }
+    const linkText = formatPrLink(template, prTitle, prUrl);
+    return value ? `${value}\n${linkText}` : linkText;
+}
 class Client {
     host;
     backlog;
@@ -43115,15 +43145,12 @@ class Client {
             core_error('Failed to get the current value of the custom field');
             return false;
         }
-        if (this.hasPrUrl(currentPrField.value || '', prUrl)) {
+        const updateValue = buildPrFieldValue(this.prLinkTemplate, currentPrField.value, prUrl, prTitle);
+        if (updateValue === null) {
             info(`Pull Request (${prUrl}) has already been linked`);
             return false;
         }
         try {
-            const linkText = this.formatPrValue(prTitle, prUrl);
-            const updateValue = currentPrField.value
-                ? `${currentPrField.value}\n${linkText}`
-                : linkText;
             await this.backlog.patchIssue(issueId, {
                 [`customField_${currentPrField.id}`]: updateValue,
             });
@@ -43158,28 +43185,6 @@ class Client {
     }
     get urlRegex() {
         return new RegExp(`https://${this.host}/view/(\\w+)-(\\d+)`, 'g');
-    }
-    hasPrUrl(value, prUrl) {
-        return value
-            .split('\n')
-            .map((line) => line.trim())
-            .some((line) => hasExactPrUrl(line, prUrl));
-    }
-    formatPrValue(title, url) {
-        const rawPrTitle = normalizePrTitle(title);
-        const prTitle = escapeMarkdownText(rawPrTitle || url);
-        return this.prLinkTemplate.replace(PR_LINK_TEMPLATE_PLACEHOLDER_REGEX, (match, placeholder) => {
-            switch (placeholder) {
-                case 'rawPrTitle':
-                    return rawPrTitle;
-                case 'prTitle':
-                    return prTitle;
-                case 'link':
-                    return url;
-                default:
-                    return match;
-            }
-        });
     }
 }
 
