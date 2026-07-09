@@ -2,6 +2,10 @@ import * as core from '@actions/core'
 import { context } from '@actions/github'
 import { Client } from './client.js'
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
 async function main() {
   try {
     const host = core.getInput('backlog-host', { required: true })
@@ -27,9 +31,7 @@ async function main() {
       }
     }
   } catch (error) {
-    if (error instanceof Error) {
-      core.setFailed(error.message)
-    }
+    core.setFailed(getErrorMessage(error))
   }
 }
 
