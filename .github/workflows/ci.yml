@@ -10,6 +10,12 @@ jobs:
     if: contains(github.event.pull_request.body, 'backlog.com')
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
       - name: Test circusdev/backlog-pr-link-action
         uses: ./ # Uses an action in the root directory
         with:
