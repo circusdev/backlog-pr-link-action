@@ -13,11 +13,11 @@ This repository contains a TypeScript GitHub Action that links a GitHub pull req
 
 ## Build, Test, and Development Commands
 
-- `npm install` installs Node dependencies from `package-lock.json`.
-- `npm test` runs Jest with `ts-jest` and ESM support.
-- `npm run lint` runs Deno lint against `src`.
-- `npm run fmt` formats TypeScript using `deno fmt`.
-- `npm run build` bundles `src/main.ts` into `dist/index.js` with `@vercel/ncc`.
+- `pnpm install` installs Node dependencies from `pnpm-lock.yaml`.
+- `pnpm test` runs Jest with `ts-jest` and ESM support.
+- `pnpm run lint` runs Deno lint against `src`.
+- `pnpm run fmt` formats TypeScript using `deno fmt`.
+- `pnpm run build` bundles `src/main.ts` into `dist/index.js` with `@vercel/ncc`.
 
 Use Node.js `>=24`, as specified in `package.json`.
 
@@ -27,7 +27,7 @@ Write TypeScript as ES modules and keep strict type checking clean. Formatting i
 
 ## Testing Guidelines
 
-Jest is the test framework. Add or update tests in `__tests__/` for behavior changes, especially Backlog URL parsing, API client behavior, and GitHub event handling. Run `npm test` before opening a pull request. When changing formatting or lint-sensitive code, also run `npm run lint` and `npm run fmt`.
+Jest is the test framework. Add or update tests in `__tests__/` for behavior changes, especially Backlog URL parsing, API client behavior, and GitHub event handling. Run `pnpm test` before opening a pull request. When changing formatting or lint-sensitive code, also run `pnpm run lint` and `pnpm run fmt`.
 
 ## Commit & Pull Request Guidelines
 
@@ -48,11 +48,11 @@ In workflow files, pin external `uses:` references to full commit SHAs and keep 
 
 This repo is a TypeScript GitHub Action (no long-running server). The standard `build`/`test`/`lint`/`fmt` commands are in `package.json`; the CI flow is in `.github/workflows/test.yml`.
 
-Environment notes (the update script only runs `npm ci`; toolchain is provisioned in the VM):
+Environment notes (the update script only runs `pnpm install --frozen-lockfile`; toolchain is provisioned in the VM):
 
 - Node.js 24 is required (`engines.node >=24`). A system-injected `/exec-daemon/node` is Node 22 and appears early on `PATH`; `~/.bashrc` prepends the nvm Node 24 bin so fresh login shells resolve Node 24. If a shell shows Node 22, run `nvm use 24` or start a login shell (`bash -l`).
-- Deno v2 (used by `npm run lint` / `npm run fmt`) is installed at `~/.deno/bin` and added to `PATH` via `~/.bashrc`.
-- `npm run fmt -- --check` (used in CI) checks formatting without writing; plain `npm run fmt` rewrites files.
-- After editing `src/`, run `npm run build` to verify the bundle locally. Do not commit the regenerated `dist/index.js` in ordinary PRs; the `dist-guard` workflow blocks direct `dist/` changes outside release-please PRs.
+- Deno v2 (used by `pnpm run lint` / `pnpm run fmt`) is installed at `~/.deno/bin` and added to `PATH` via `~/.bashrc`.
+- `pnpm run fmt --check` (used in CI) checks formatting without writing; plain `pnpm run fmt` rewrites files.
+- After editing `src/`, run `pnpm run build` to verify the bundle locally. Do not commit the regenerated `dist/index.js` in ordinary PRs; the `dist-guard` workflow blocks direct `dist/` changes outside release-please PRs.
 
 Running the action locally end-to-end (no GUI): point `GITHUB_EVENT_PATH` at a JSON file containing a `pull_request` payload (with `html_url` and `body`), set inputs via env vars `INPUT_BACKLOG-HOST` and `INPUT_BACKLOG-API-KEY` (note the hyphen in the env var names), then run `node dist/index.js`. A real link requires valid Backlog Premium credentials; with dummy values the action still exercises URL detection/parsing and gracefully warns `Invalid ProjectID`.
